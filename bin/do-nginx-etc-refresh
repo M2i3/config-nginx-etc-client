@@ -1,0 +1,27 @@
+#!/bin/bash
+
+REFRESH_DELAY="${REFRESH_DELAY:-30}"
+
+if [ -z "${CONFIG_URL}" ]; then
+  echo "Missing CONFIG_URL for location to poll"
+  echo "Exiting script"
+  exit 10001
+fi
+
+cd /etc/nginx/
+finish=0
+trap 'finish=1' SIGTERM
+echo starting nginx etc update loop
+while (( finish != 1 ))
+do
+
+  echo "doing an config update"
+  wget --certificate=/mnt/client-ssl/m2i3app-client.crt --private-key=/mnt/client-ssl/m2i3app-client.key -e robots=off --no-check-certificate --timestamping -r --no-parent --reject "index.html*" -P ./ -nH --cut-dirs=1  $CONFIG_URL
+
+  echo "remove empty files"
+  find  /etc/nginx/ -type f -empty -delete -print
+  
+  echo "sleeping for $REFRESH_DELAY seconds"
+  sleep $REFRESH_DELAY
+done
+echo received SIGTERM. stopping nginx etc update loop
